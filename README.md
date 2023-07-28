@@ -1,68 +1,128 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Magento oauth
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
 
-## About Laravel
+Access powerful AI models to transcribe and understand speech. Their simple API exposes AI models for speech recognition, speaker detection, speech summarization, and more. (https://www.assemblyai.com/docs/).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Examples
+------------
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+AssemblyAI provides AI models to transcribe and analyze audio and speech data through our production-ready, scalable web API. Our models are customizable and enable features such as content moderation, sentiment analysis, PII redaction, key phrase identification, and speaker diarization.
 
-## Learning Laravel
+## Step-by-step instructions:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. Create a new file and import the necessary libraries for making an HTTP request.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. Set up the API endpoint and headers. The headers should include your API token.
 
-## Laravel Sponsors
+$base_url = "https://api.assemblyai.com/v2";
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+$headers = array(
+  "authorization: {your_api_token}" ,
+  "content-type: application/json"
+);
 
-### Premium Partners
+3. Upload your local file to the AssemblyAI API.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+$path = "/my_audio.mp3" ;
 
-## Contributing
+$ch = curl_init();
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+curl_setopt($ch, CURLOPT_URL, $base_url . "/upload");
+curl_setopt($ch, CURLOPT_POST, 1);
+curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($path));
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-## Code of Conduct
+$response = curl_exec($ch);
+$response_data = json_decode($response, true);
+$upload_url = $response_data["upload_url"];
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+curl_close($ch);
+
+4. Use the upload_url returned by the AssemblyAI API to create a JSON payload containing the audio_url parameter.
+
+$data = array(
+    "audio_url" => upload_url // You can also use a URL to an audio or video file on the web
+);
+
+5. Make a POST request to the AssemblyAI API endpoint with the payload and headers.
+
+$url = $base_url . "/transcript";
+$curl = curl_init($url);
+
+curl_setopt($curl, CURLOPT_POST, true);
+curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($curl);
+
+$response = json_decode($response, true);
+
+curl_close($curl);
+
+6. After making the request, you will receive an ID for the transcription. Use it to poll the API every few seconds to check the status of the transcript job. Once the status is completed, you can retrieve the transcript from the API response.
+
+$transcript_id = $response['id'];
+$polling_endpoint = "https://api.assemblyai.com/v2/transcript/" . $transcript_id;
+
+while (true) {
+    $polling_response = curl_init($polling_endpoint);
+
+    curl_setopt($polling_response, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($polling_response, CURLOPT_RETURNTRANSFER, true);
+
+    $transcription_result = json_decode(curl_exec($polling_response), true);
+
+    if ($transcription_result['status'] === "completed") {
+        break;
+    } else if ($transcription_result['status'] === "error") {
+        throw new Exception("Transcription failed: " . $transcription_result['error']);
+    } else {
+        sleep(3);
+    }
+}
+
+## Understanding the response
+
+{
+id:"6rlr37h8f4-e310-4e23-bbf3-ea5f347dc684",
+language_model:"assemblyai_default",
+acoustic_model:"assemblyai_default",
+language_code:"en_us",
+status:"completed",
+audio_url:"https://cdn.assemblyai.com/upload/83bdd119-9099-46c9-8845-50c3ec ...",
+text:"You. Runner's Knee runner's knee is a condition characterized by ...",
+words:[...],
+utterances:NULL,
+confidence:0.9112455882352947,
+audio_duration:200,
+punctuate:true
+}
+
+## Testing
+
+```bash
+composer test
+```
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+
 
 ## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+
+## Credits
+
+- [Revathi Stalin](https://github.com/revathi-stalin)
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# assemblyAI-laravel
-# assemblyAI-laravel
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
